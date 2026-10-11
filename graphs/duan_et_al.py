@@ -13,6 +13,7 @@ class TotalOrder:
         self._counter = 0
         # sentinela maior que qualquer chave real — usado para B=infinito
         self.TOP = (INF, INF, INF)
+        self.pred = {}
 
     def rank(self, v):
         r = self._rank.get(v)
@@ -26,12 +27,24 @@ class TotalOrder:
         return (db[v], self.hops[v], self.rank(v))
 
     def relax(self, u, v, w, db):
-        """Tenta relaxar a aresta (u,v); atualiza db e nº de saltos juntos.
-        Retorna (aceito, nova_chave)."""
-        nova = db[u] + w
-        if nova <= db[v]:
-            db[v] = nova
-            self.hops[v] = self.hops[u] + 1
+        """Tenta relaxar a aresta (u,v) respeitando a ordem total de caminhos
+        (distância, saltos, rank do predecessor). Retorna (aceito, nova_chave)."""
+        nova_dist = db[u] + w
+        nova_hops = self.hops[u] + 1
+        old_dist = db[v]
+        old_hops = self.hops[v]
+
+        if nova_dist < old_dist:
+            db[v] = nova_dist
+            self.hops[v] = nova_hops
+            self.pred[v] = u
+            return True, self.key(v, db)
+        elif nova_dist == old_dist:
+            cand_tie = (nova_hops, self.rank(u))
+            old_tie = (old_hops, self.rank(self.pred.get(v, v)))
+            if cand_tie < old_tie:
+                self.hops[v] = nova_hops
+                self.pred[v] = u
             return True, self.key(v, db)
         return False, self.key(v, db)
 
@@ -237,12 +250,11 @@ def find_pivots(graph, S, B_key, db, k, order: TotalOrder):
         Wi_prev = Wi
         if len(W) > k * len(S):
             return set(S), W
-    parent = {}
-    for u in W:
-        for v, w in graph.adj[u]:
-            if v in W and db[u] + w == db[v]:
-                parent[v] = u
+    parent = {v: order.pred[v] for v in W if v in order.pred and order.pred[v] in W}
     roots = {u for u in S if u not in parent}
+    children = defaultdict(list)
+    for v, p in parent.items():
+        children[p].append(v)
 
     def count_subtree(root):
         count = 0
@@ -254,9 +266,8 @@ def find_pivots(graph, S, B_key, db, k, order: TotalOrder):
                 continue
             visited.add(x)
             count += 1
-            for v, w in graph.adj[x]:
-                if v in W and parent.get(v) == x:
-                    stack.append(v)
+            for v in children.get(x, []):
+                stack.append(v)
         return count
 
     P = set()
@@ -322,7 +333,7 @@ def BMSSP(graph, l, B_key, S, db, k, t, order: TotalOrder):
 # sssp_duan_et_al
 # =============================================================================
 
-def sssp_duan_et_al(graph, source, cleanup_passes=8):
+def sssp_duan_et_al(graph, source, cleanup_passes=0):
     db = defaultdict(lambda: INF)
     db[source] = 0
     order = TotalOrder()
@@ -333,7 +344,6 @@ def sssp_duan_et_al(graph, source, cleanup_passes=8):
     l = int(math.log2(n) / t) + 1 if n > 1 else 1
     BMSSP(graph, l, order.TOP, {source}, db, k, t, order)
 
-    
     for _ in range(cleanup_passes):
         changed = False
         for u, edges in graph.adj.items():

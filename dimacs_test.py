@@ -3,6 +3,7 @@ from datetime import datetime
 from graphs.graphs import Graph, dijkstra, is_fully_reachable
 from graphs.duan_et_al import sssp_duan_et_al
 from graphs.duan_et_al_iter import sssp_duan_et_al_iter
+from graphs.duan_et_al_opt import sssp_duan_et_al_opt, sssp_duan_et_al_opt_iter
 from graphs.degree_reduction import bounded_out_degree
 import gzip
 import shutil
@@ -52,6 +53,7 @@ def process_file(arquivo_gz: str, r: int, algorithms: tuple, transformar: bool) 
     qt_executions = len(algorithms) * r
     current_execution = 0
 
+    ref_dist = None
     for alg in algorithms:
         for i in range(r):
 
@@ -77,6 +79,19 @@ def process_file(arquivo_gz: str, r: int, algorithms: tuple, transformar: bool) 
             num_explored = sum(1 for v in dist if dist[v] < float('inf'))
             explored_percentage = (num_explored / num_vertices) * 100
 
+            if alg == dijkstra:
+                ref_dist = dist
+                is_correct = True
+                error_count = 0
+            else:
+                if ref_dist is None:
+                    ref_dist = dijkstra(graph, source)
+                error_count = sum(
+                    1 for v, d in ref_dist.items()
+                    if (dist.get(v, float('inf')) != d and abs(dist.get(v, float('inf')) - d) > 1e-9)
+                )
+                is_correct = (error_count == 0)
+
             file_results.append({
                 "arquivo": os.path.basename(arquivo_gz),
                 "num_vertices": num_vertices,
@@ -85,7 +100,9 @@ def process_file(arquivo_gz: str, r: int, algorithms: tuple, transformar: bool) 
                 "execution_time": delta_time,
                 "repetition": i,
                 "fully_reachable": is_fully_reachable(graph, source, num_vertices),
-                "explored_percentage": explored_percentage
+                "explored_percentage": explored_percentage,
+                "is_correct": is_correct,
+                "error_count": error_count
             })
 
     print()
@@ -133,6 +150,18 @@ parser.add_argument(
     action="store_true",
     help="Aplica a transformação de redução de grau (bounded_out_degree) no grafo antes de executar os algoritmos."
 )
+parser.add_argument(
+    "--output-dir",
+    type=str,
+    default=None,
+    help="Diretório de destino para salvar o arquivo CSV de resultados."
+)
+parser.add_argument(
+    "--algorithms",
+    nargs="+",
+    default=["dijkstra", "sssp_duan_et_al", "sssp_duan_et_al_iter", "sssp_duan_et_al_opt"],
+    help="Algoritmos a executar: dijkstra, sssp_duan_et_al, sssp_duan_et_al_iter, sssp_duan_et_al_opt, sssp_duan_et_al_opt_iter."
+)
 
 args = parser.parse_args()
 
@@ -143,7 +172,14 @@ salvar = args.salvar
 transformar = args.transformar
 
 # Algoritmos
-algorithms = (dijkstra, sssp_duan_et_al, sssp_duan_et_al_iter)
+ALGO_MAP = {
+    "dijkstra": dijkstra,
+    "sssp_duan_et_al": sssp_duan_et_al,
+    "sssp_duan_et_al_iter": sssp_duan_et_al_iter,
+    "sssp_duan_et_al_opt": sssp_duan_et_al_opt,
+    "sssp_duan_et_al_opt_iter": sssp_duan_et_al_opt_iter,
+}
+algorithms = tuple(ALGO_MAP[name] for name in args.algorithms)
 
 # Monta a lista de arquivos .gz a processar
 if is_directory:
@@ -163,7 +199,10 @@ for idx, arquivo_gz in enumerate(arquivos, start=1):
 
 print("\nExecution finished.")
 
-dir = "data/untracked_results/" if salvar == "--untrack" else "data/"
+if args.output_dir:
+    dir = args.output_dir if args.output_dir.endswith(('/', '\\')) else args.output_dir + '/'
+else:
+    dir = "data/untracked_results/" if salvar == "--untrack" else "data/"
 
 name = f"dimacs-results-{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
 
@@ -183,7 +222,9 @@ with open(f'{dir}{name}.csv', 'w', newline='') as f:
             "execution_time",
             "repetition",
             "fully_reachable",
-            "explored_percentage"
+            "explored_percentage",
+            "is_correct",
+            "error_count"
         ]
     )
 

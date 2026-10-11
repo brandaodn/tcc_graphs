@@ -68,6 +68,18 @@ parser.add_argument(
     action="store_true",
     help="Aplica a transformação de redução de grau (bounded_out_degree) no grafo antes de executar os algoritmos."
 )
+parser.add_argument(
+    "--output-dir",
+    type=str,
+    default=None,
+    help="Diretório de destino para salvar o arquivo CSV de resultados."
+)
+parser.add_argument(
+    "--algorithms",
+    nargs="+",
+    default=["dijkstra", "sssp_duan_et_al", "sssp_duan_et_al_iter", "sssp_duan_et_al_opt"],
+    help="Algoritmos a executar: dijkstra, sssp_duan_et_al, sssp_duan_et_al_iter, sssp_duan_et_al_opt, sssp_duan_et_al_opt_iter."
+)
 
 args = parser.parse_args()
 
@@ -84,8 +96,15 @@ num_vertices = (10000, 50000, 100000)
 # Grau médio
 grau_médio = (5, 3, 1, 0.8, 0.7, 0.5) 
 
-# Algoritmos
-algorithms = (dijkstra, sssp_duan_et_al, sssp_duan_et_al_iter)
+# Mapeamento e seleção dos algoritmos
+ALGO_MAP = {
+    "dijkstra": dijkstra,
+    "sssp_duan_et_al": sssp_duan_et_al,
+    "sssp_duan_et_al_iter": sssp_duan_et_al_iter,
+    "sssp_duan_et_al_opt": sssp_duan_et_al_opt,
+    "sssp_duan_et_al_opt_iter": sssp_duan_et_al_opt_iter,
+}
+algorithms = tuple(ALGO_MAP[name] for name in args.algorithms)
 
 executions_per_graph = args.executions_per_graph
 
@@ -130,6 +149,7 @@ for num_v in num_vertices:
             else:
                 g = g_raw
 
+            ref_dist = None
             for alg in algorithms:
 
                 for j in range(executions_per_graph):
@@ -159,6 +179,19 @@ for num_v in num_vertices:
                     num_explored = sum(1 for v in dist if dist[v] < float('inf'))
                     explored_percentage = (num_explored / num_v) * 100
 
+                    if alg == dijkstra:
+                        ref_dist = dist
+                        is_correct = True
+                        error_count = 0
+                    else:
+                        if ref_dist is None:
+                            ref_dist = dijkstra(g, source)
+                        error_count = sum(
+                            1 for v, d in ref_dist.items()
+                            if (dist.get(v, float('inf')) != d and abs(dist.get(v, float('inf')) - d) > 1e-9)
+                        )
+                        is_correct = (error_count == 0)
+
                     results.append({
                         "num_vertices": num_v,
                         "avg_degree_k": k,
@@ -167,7 +200,9 @@ for num_v in num_vertices:
                         "edge_estimate": edge_estimate,
                         "graph": f"n{num_v}k{k:.2f}i{i}",
                         "fully_reachable": is_fully_reachable(g, source, num_v),
-                        "explored_percentage": explored_percentage
+                        "explored_percentage": explored_percentage,
+                        "is_correct": is_correct,
+                        "error_count": error_count
                     })
 
 print("\nExecution finished.")
@@ -175,7 +210,10 @@ print("\nExecution finished.")
 # Nome dessa instância do teste com a data e hora atual
 name = f"results-{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
 
-dir = "data/untracked_results/" if salvar == "--untrack" else "data/"
+if args.output_dir:
+    dir = args.output_dir if args.output_dir.endswith(('/', '\\')) else args.output_dir + '/'
+else:
+    dir = "data/untracked_results/" if salvar == "--untrack" else "data/"
 
 # Criar diretório se não existir
 if not os.path.exists(dir):
@@ -193,7 +231,9 @@ with open(f'{dir}{name}.csv', 'w', newline='') as f:
             "edge_estimate",
             "graph",
             "fully_reachable",
-            "explored_percentage"
+            "explored_percentage",
+            "is_correct",
+            "error_count"
         ]
     )
 

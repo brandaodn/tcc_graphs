@@ -81,7 +81,7 @@ def BMSSP_iter(graph, l, B_key, S, db, k, t, order: TotalOrder):
             return ret
 
 
-def sssp_duan_et_al_iter(graph, source, cleanup_passes=8):
+def sssp_duan_et_al_iter(graph, source, cleanup_passes=0):
     db = defaultdict(lambda: INF)
     db[source] = 0
     order = TotalOrder()
