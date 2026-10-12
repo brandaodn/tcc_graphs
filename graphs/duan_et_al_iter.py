@@ -81,7 +81,7 @@ def BMSSP_iter(graph, l, B_key, S, db, k, t, order: TotalOrder):
             return ret
 
 
-def sssp_duan_et_al_iter(graph, source, cleanup_passes=0):
+def sssp_duan_et_al_iter(graph, source):
     db = defaultdict(lambda: INF)
     db[source] = 0
     order = TotalOrder()
@@ -91,20 +91,6 @@ def sssp_duan_et_al_iter(graph, source, cleanup_passes=0):
     t = max(2, int(math.log2(n) ** (2 / 3))) if n > 1 else 2
     l = int(math.log2(n) / t) + 1 if n > 1 else 1
     BMSSP_iter(graph, l, order.TOP, {source}, db, k, t, order)
-
-    for _ in range(cleanup_passes):
-        changed = False
-        for u, edges in graph.adj.items():
-            du = db[u]
-            if du == INF:
-                continue
-            for v, w in edges:
-                nova = du + w
-                if nova < db[v]:
-                    db[v] = nova
-                    changed = True
-        if not changed:
-            break
 
     return dict(db)
 

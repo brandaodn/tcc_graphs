@@ -333,7 +333,7 @@ def BMSSP(graph, l, B_key, S, db, k, t, order: TotalOrder):
 # sssp_duan_et_al
 # =============================================================================
 
-def sssp_duan_et_al(graph, source, cleanup_passes=0):
+def sssp_duan_et_al(graph, source):
     db = defaultdict(lambda: INF)
     db[source] = 0
     order = TotalOrder()
@@ -344,57 +344,4 @@ def sssp_duan_et_al(graph, source, cleanup_passes=0):
     l = int(math.log2(n) / t) + 1 if n > 1 else 1
     BMSSP(graph, l, order.TOP, {source}, db, k, t, order)
 
-    for _ in range(cleanup_passes):
-        changed = False
-        for u, edges in graph.adj.items():
-            du = db[u]
-            if du == INF:
-                continue
-            for v, w in edges:
-                nova = du + w
-                if nova < db[v]:
-                    db[v] = nova
-                    changed = True
-        if not changed:
-            break
-
     return dict(db)
-
-
-
-
-if __name__ == "__main__":
-    g = Graph()
-    g.add_edge('A', 'B', 1.5);  g.add_edge('A', 'C', 2.0);  g.add_edge('A', 'E', 2.8)
-    g.add_edge('B', 'D', 3.0);  g.add_edge('B', 'F', 1.7)
-    g.add_edge('C', 'D', 1.2);  g.add_edge('C', 'F', 2.5);  g.add_edge('C', 'G', 3.1)
-    g.add_edge('D', 'H', 2.2)
-    g.add_edge('E', 'F', 1.1);  g.add_edge('E', 'I', 2.9)
-    g.add_edge('F', 'H', 1.4);  g.add_edge('F', 'J', 2.6)
-    g.add_edge('G', 'J', 1.3)
-    g.add_edge('H', 'K', 2.0)
-    g.add_edge('I', 'J', 1.8)
-    g.add_edge('J', 'K', 1.5);  g.add_edge('J', 'L', 2.7)
-    g.add_edge('K', 'M', 1.9)
-    g.add_edge('L', 'M', 2.3)
-    g.adj['M'] = []
-
-    source = 'A'
-    result_bmssp    = sssp_duan_et_al(g, source)
-    result_dijkstra = dijkstra(g, source)
-
-    print("Comparação BMSSP vs Dijkstra:")
-    all_ok = True
-    for v in sorted(result_dijkstra):
-        bv = result_bmssp.get(v, INF)
-        dv = result_dijkstra[v]
-        ok = abs(bv - dv) < 1e-9
-        if not ok:
-            all_ok = False
-        print(f"  {v}: BMSSP={bv:.4f}  Dijkstra={dv:.4f}  {'OK' if ok else 'ERRO'}")
-
-    print()
-    if all_ok:
-        print("Todos os vértices corretos.")
-    else:
-        print("FALHOU em algum vértice.")

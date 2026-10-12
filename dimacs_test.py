@@ -3,7 +3,7 @@ from datetime import datetime
 from graphs.graphs import Graph, dijkstra, is_fully_reachable
 from graphs.duan_et_al import sssp_duan_et_al
 from graphs.duan_et_al_iter import sssp_duan_et_al_iter
-from graphs.duan_et_al_opt import sssp_duan_et_al_opt, sssp_duan_et_al_opt_iter
+from graphs.duan_et_al_opt import sssp_duan_et_al_opt
 from graphs.degree_reduction import bounded_out_degree
 import gzip
 import shutil
@@ -160,7 +160,7 @@ parser.add_argument(
     "--algorithms",
     nargs="+",
     default=["dijkstra", "sssp_duan_et_al", "sssp_duan_et_al_iter", "sssp_duan_et_al_opt"],
-    help="Algoritmos a executar: dijkstra, sssp_duan_et_al, sssp_duan_et_al_iter, sssp_duan_et_al_opt, sssp_duan_et_al_opt_iter."
+    help="Algoritmos a executar: dijkstra, sssp_duan_et_al, sssp_duan_et_al_iter, sssp_duan_et_al_opt."
 )
 
 args = parser.parse_args()
@@ -177,7 +177,6 @@ ALGO_MAP = {
     "sssp_duan_et_al": sssp_duan_et_al,
     "sssp_duan_et_al_iter": sssp_duan_et_al_iter,
     "sssp_duan_et_al_opt": sssp_duan_et_al_opt,
-    "sssp_duan_et_al_opt_iter": sssp_duan_et_al_opt_iter,
 }
 algorithms = tuple(ALGO_MAP[name] for name in args.algorithms)
 

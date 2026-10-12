@@ -9,7 +9,7 @@ from graphs.graphs import (
 )
 from graphs.duan_et_al import sssp_duan_et_al
 from graphs.duan_et_al_iter import sssp_duan_et_al_iter
-from graphs.duan_et_al_opt import sssp_duan_et_al_opt, sssp_duan_et_al_opt_iter
+from graphs.duan_et_al_opt import sssp_duan_et_al_opt
 from time import process_time
 import sys
 from graphs.degree_reduction import bounded_out_degree
@@ -103,7 +103,6 @@ ALGO_MAP = {
     "sssp_duan_et_al": sssp_duan_et_al,
     "sssp_duan_et_al_iter": sssp_duan_et_al_iter,
     "sssp_duan_et_al_opt": sssp_duan_et_al_opt,
-    "sssp_duan_et_al_opt_iter": sssp_duan_et_al_opt_iter,
 }
 algorithms = tuple(ALGO_MAP[name] for name in args.algorithms)
 

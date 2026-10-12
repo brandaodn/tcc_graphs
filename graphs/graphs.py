@@ -11,14 +11,6 @@ class Graph:
     def add_edge(self, u, v, w):
         self.adj[u].append((v, w))
 
-    # para debug: imprime o grafo
-    def representation(self):
-        result = []
-        for u in self.adj:
-            for v, w in self.adj[u]:
-                result.append(f"{u} --({w})--> {v}")
-        return result
-
     def save(self, path):
             vertices = sorted(self.adj.keys(), key=str)
             edges = [
