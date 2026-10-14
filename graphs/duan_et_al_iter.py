@@ -1,8 +1,7 @@
 import math
 from collections import defaultdict
-from graphs.duan_et_al import (
-    INF, TotalOrder, BatchPQ, base_case, find_pivots,
-)
+from graphs.batch_pq import INF, TotalOrder, BatchPQ
+from graphs.duan_et_al import base_case, find_pivots
 
 
 class _Frame:
@@ -13,7 +12,7 @@ def _open_frame(graph, l, B, S, db, k, t, order):
     f = _Frame()
     f.l, f.B, f.S = l, B, S
     if l == 0:
-        return f                      # base case é resolvido no laço principal
+        return f                      # Caso base é resolvido no laço principal
     P, f.W = find_pivots(graph, S, B, db, k, order)
     f.D = BatchPQ(M=2 ** ((l - 1) * t), B=B)
     for x in P:
@@ -51,7 +50,7 @@ def BMSSP_iter(graph, l, B_key, S, db, k, t, order: TotalOrder):
     while True:
         f = stack[-1]
 
-        # caso base (l == 0): resolve e "retorna"
+        # Caso base (l == 0): resolve e "retorna"
         if f.l == 0:
             ret = base_case(graph, next(iter(f.S)), f.B, db, k, order)
             stack.pop()
@@ -59,21 +58,21 @@ def BMSSP_iter(graph, l, B_key, S, db, k, t, order: TotalOrder):
                 return ret
             continue
 
-        # um filho acabou de retornar: processa o pós-chamada
+        # Um filho acabou de retornar: processa o pós-chamada
         if ret is not None:
             _absorb(f, ret, graph, db, order)
             ret = None
 
-        # próxima iteração do while
+        # Próxima iteração do while
         if len(f.U) < f.limit and not f.D.is_empty():
             Bi, Si = f.D.pull()
             if Si:
                 f.Bi, f.Si = Bi, Si
                 stack.append(_open_frame(graph, f.l - 1, Bi, set(Si),
                                          db, k, t, order))
-                continue              # "chamada recursiva"
+                continue              # "Chamada recursiva"
 
-        # fim do while: finaliza o frame e "retorna"
+        # Fim do while: finaliza o frame e "retorna"
         f.U |= {x for x in f.W if order.key(x, db) < f.B_prime}
         ret = (f.B_prime, f.U)
         stack.pop()
@@ -91,6 +90,4 @@ def sssp_duan_et_al_iter(graph, source):
     t = max(2, int(math.log2(n) ** (2 / 3))) if n > 1 else 2
     l = int(math.log2(n) / t) + 1 if n > 1 else 1
     BMSSP_iter(graph, l, order.TOP, {source}, db, k, t, order)
-
     return dict(db)
-
