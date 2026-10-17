@@ -7,6 +7,9 @@ Validates an optimization hypothesis without changing production modules.
 Candidate > previous cannot update distance or tie; equality must still
 call relax and must remain eligible for queue reinsertion.
 """
+import ast
+import inspect
+import textwrap
 import math
 import random
 import unittest
@@ -33,6 +36,24 @@ def make_graph(n, density, mode, seed):
 
 
 class DominatedRelaxationTests(unittest.TestCase):
+    def test_guard_is_present_in_recursive_propagation(self):
+        # Verifica o codigo efetivamente sob teste, nao apenas TotalOrder.relax.
+        from graphs.bmssp_frontier_experimental import bmssp_frontier
+        tree = ast.parse(textwrap.dedent(inspect.getsource(bmssp_frontier)))
+        matched = [
+            node for node in ast.walk(tree)
+            if isinstance(node, ast.If)
+            and isinstance(node.test, ast.Compare)
+            and isinstance(node.test.left, ast.Name)
+            and node.test.left.id == "candidate"
+            and len(node.test.ops) == 1
+            and isinstance(node.test.ops[0], ast.Gt)
+            and isinstance(node.test.comparators[0], ast.Name)
+            and node.test.comparators[0].id == "previous"
+            and any(isinstance(body, ast.Continue) for body in node.body)
+        ]
+        self.assertTrue(matched, "Expected early continue for dominated candidates")
+
     def test_strictly_dominated_relax_does_not_change_order(self):
         from collections import defaultdict
         order = TotalOrder()
