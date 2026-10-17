@@ -83,11 +83,12 @@ def inspect(index, output, history_size):
         return result
 
     status = "completed"
+    recursive_events = []
     with patch.object(BatchPQ, "insert", insert), \
          patch.object(BatchPQ, "pull", pull), \
          patch.object(BatchPQ, "batch_prepend", batch_prepend):
         try:
-            sssp_frontier_experimental(graph, source, max_iterations=1000)
+            sssp_frontier_experimental(graph, source, max_iterations=1000, diagnostics=recursive_events)
         except RepeatedFrontierError as exc:
             status = f"RepeatedFrontierError: {exc}"
 
@@ -96,6 +97,8 @@ def inspect(index, output, history_size):
         "n": len(graph.adj), "status": status,
         "operation_count": counter[0],
         "last_operations": list(recent),
+        "last_recursive_events": recursive_events[-30:],
+        "recursion_K_Si_overlaps": sum(bool(e.get("overlap")) for e in recursive_events),
     }
     with open(output, "w", encoding="utf-8") as handle:
         json.dump(report, handle, ensure_ascii=False, indent=2)
