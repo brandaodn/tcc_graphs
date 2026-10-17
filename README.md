@@ -1,6 +1,6 @@
 # Avaliação Experimental de Algoritmos SSSP: Dijkstra vs. BMSSP (Duan et al.)
 
-Este repositório contém os experimentos de comparação empírica de desempenho entre o algoritmo clássico de Dijkstra e o algoritmo sub-linear de caminhos mínimos de fonte única (SSSP) proposto por Duan et al. (BMSSP), desenvolvido como parte de Trabalho de Conclusão de Curso (TCC) em Ciência da Computação (BCC/CEFET-MG).
+Este repositório contém os experimentos de comparação empírica de desempenho entre o algoritmo clássico de Dijkstra e o algoritmo sub-linear de caminhos mínimos de fonte única (SSSP) proposto por Duan et al. (BMSSP), desenvolvido como parte de Trabalho de Conclusão de Curso (TCC) em Ciência da Computação (BCC/CEFET-RJ).
 
 ---
 
