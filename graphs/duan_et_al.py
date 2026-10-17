@@ -32,7 +32,10 @@ def find_pivots(graph, S, B_key, db, k, order: TotalOrder):
         for u in Wi_prev:
             for v, w in graph.adj[u]:
                 accepted, key_v = order.relax(u, v, w, db)
-                if accepted and key_v < B_key:
+                # A exploracao deve incluir vertices com rotulos ja conhecidos:
+                # accepted informa apenas se houve melhora nesta relaxacao.
+                # Evita reintroduzir vertices fora do limite B_key.
+                if key_v < B_key:
                     Wi.add(v)
         W |= Wi
         Wi_prev = Wi
