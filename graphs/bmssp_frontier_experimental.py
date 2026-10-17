@@ -156,6 +156,19 @@ def bmssp_frontier(graph, level, bound, sources, dist, k, t, order,
         })
         boundary = min(child_boundary, bound)
 
+    # Auditoria de pendencias quando a chamada termina por cota ou fila vazia.
+    # Apenas diagnostico; nao altera a semantica nem o custo do algoritmo ativo
+    # exceto quando uma lista diagnostics e fornecida (como neste experimento).
+    diagnostics.append({
+        "reason": "recursive_exit",
+        "level": level,
+        "complete_count": len(complete),
+        "limit": limit,
+        "quota_reached": len(complete) >= limit,
+        "remaining_queue": [(repr(v), repr(k))
+                            for v, k in queue._key_val.items()],
+        "boundary": repr(boundary),
+    })
     complete.update(x for x in visited if order.key(x, dist) < boundary)
     if pending_probe:
         return boundary, complete, {v for v in dist if order.key(v, dist) == boundary}
