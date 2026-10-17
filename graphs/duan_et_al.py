@@ -15,7 +15,9 @@ def base_case(graph, s, B_key, db, k, order: TotalOrder):
         U0.add(u)
         for v, w in graph.adj[u]:
             accepted, key_v = order.relax(u, v, w, db)
-            if accepted and key_v < B_key:
+            # Um rotulo ja conhecido ainda pode precisar ser explorado.
+            # A fila e U0 evitam processamento repetido dos vertices finalizados.
+            if key_v < B_key and v not in U0:
                 heapq.heappush(heap, (key_v, v))
     if len(U0) <= k:
         return B_key, U0
