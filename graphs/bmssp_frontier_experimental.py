@@ -117,7 +117,7 @@ def bmssp_frontier(graph, level, bound, sources, dist, k, t, order,
     return boundary, complete
 
 
-def sssp_frontier_experimental(graph, source, *, max_iterations=10000):
+def sssp_frontier_experimental(graph, source, *, max_iterations=10000, diagnostics=None):
     dist = defaultdict(lambda: INF)
     dist[source] = 0
     order = TotalOrder()
@@ -128,7 +128,8 @@ def sssp_frontier_experimental(graph, source, *, max_iterations=10000):
     k = max(2, int(math.log2(n) ** (1 / 3))) if n > 1 else 2
     t = max(2, int(math.log2(n) ** (2 / 3))) if n > 1 else 2
     level = int(math.log2(n) / t) + 1 if n > 1 else 1
-    diagnostics = []
+    if diagnostics is None:
+        diagnostics = []
     bmssp_frontier(graph, level, order.TOP, {source}, dist, k, t,
                    order, diagnostics=diagnostics,
                    max_iterations=max_iterations)
