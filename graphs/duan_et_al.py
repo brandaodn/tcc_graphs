@@ -12,6 +12,10 @@ def base_case(graph, s, B_key, db, k, order: TotalOrder):
         key_u, u = heapq.heappop(heap)
         if u in U0:
             continue
+        # Ignora entradas antigas produzidas antes de uma melhoria de chave.
+        # Nao finaliza um vertice usando um rotulo obsoleto.
+        if key_u != order.key(u, db):
+            continue
         U0.add(u)
         for v, w in graph.adj[u]:
             accepted, key_v = order.relax(u, v, w, db)
