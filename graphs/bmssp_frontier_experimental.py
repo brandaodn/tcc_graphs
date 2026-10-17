@@ -19,9 +19,17 @@ class RepeatedFrontierError(RuntimeError):
 
 
 def bmssp_frontier(graph, level, bound, sources, dist, k, t, order,
-                   *, diagnostics, max_iterations=10000):
+                   *, diagnostics, max_iterations=10000, boundary_probe=False):
     if level == 0:
-        return base_case(graph, next(iter(sources)), bound, dist, k, order)
+        child_bound, finished = base_case(graph, next(iter(sources)), bound, dist, k, order)
+        if boundary_probe:
+            # EXPERIMENTAL: incluir o vertice exatamente no limite no
+            # resultado operacional; NAO equivale ao conjunto finalizado
+            # definido pelo artigo.
+            finished = set(finished) | {
+                v for v in dist if order.key(v, dist) == child_bound
+            }
+        return child_bound, finished
 
     pivots, visited = find_pivots(graph, sources, bound, dist, k, order)
     queue = BatchPQ(M=2 ** ((level - 1) * t), B=bound)
@@ -65,9 +73,13 @@ def bmssp_frontier(graph, level, bound, sources, dist, k, t, order,
                     f"Pull vazio com fila não vazia no nível {level}"
                 )
             break
+        before_complete = set(complete)
+        before_dist = dict(dist)
+        extracted_keys = {v: order.key(v, dist) for v in batch}
         child_boundary, child_complete = bmssp_frontier(
             graph, level - 1, next_bound, set(batch), dist, k, t,
-            order, diagnostics=diagnostics, max_iterations=max_iterations
+            order, diagnostics=diagnostics, max_iterations=max_iterations,
+            boundary_probe=boundary_probe
         )
         complete.update(child_complete)
         prepend = []
@@ -111,6 +123,12 @@ def bmssp_frontier(graph, level, bound, sources, dist, k, t, order,
                 "from_Si": [(repr(v), repr(key)) for v, key in from_si],
             })
         prepend.extend(from_si)
+        if boundary_probe:
+            no_progress = (set(child_complete).issubset(before_complete)
+                           and dict(dist) == before_dist)
+            if no_progress:
+                prepend = [(v, key) for v, key in prepend
+                           if extracted_keys.get(v) != key]
         queue.batch_prepend(prepend)
         after = dict(queue._key_val)
         diagnostics.append({
@@ -133,7 +151,7 @@ def bmssp_frontier(graph, level, bound, sources, dist, k, t, order,
     return boundary, complete
 
 
-def sssp_frontier_experimental(graph, source, *, max_iterations=10000, diagnostics=None):
+def sssp_frontier_experimental(graph, source, *, max_iterations=10000, diagnostics=None, boundary_probe=False):
     dist = defaultdict(lambda: INF)
     dist[source] = 0
     order = TotalOrder()
@@ -148,5 +166,6 @@ def sssp_frontier_experimental(graph, source, *, max_iterations=10000, diagnosti
         diagnostics = []
     bmssp_frontier(graph, level, order.TOP, {source}, dist, k, t,
                    order, diagnostics=diagnostics,
-                   max_iterations=max_iterations)
+                   max_iterations=max_iterations,
+                   boundary_probe=boundary_probe)
     return {v: dist[v] for v in vertices}
