@@ -32,8 +32,10 @@ def _absorb(f, ret, graph, db, order):
     K = []
     for u in Ui:
         for v, w in graph.adj[u]:
+            candidate = db[u] + w
+            previous = db[v]
             accepted, key_v = order.relax(u, v, w, db)
-            if accepted:
+            if candidate <= previous and v not in order.completed:
                 if Bi <= key_v < B:
                     D.insert(v, key_v)
                 elif B_i_prime <= key_v < Bi:
@@ -74,6 +76,7 @@ def BMSSP_iter(graph, l, B_key, S, db, k, t, order: TotalOrder):
 
         # Fim do while: finaliza o frame e "retorna"
         f.U |= {x for x in f.W if order.key(x, db) < f.B_prime}
+        order.completed.update(f.U)
         ret = (f.B_prime, f.U)
         stack.pop()
         if not stack:
