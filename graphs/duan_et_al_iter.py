@@ -87,6 +87,7 @@ def sssp_duan_et_al_iter(graph, source):
     db = defaultdict(lambda: INF)
     db[source] = 0
     order = TotalOrder()
+    order.completed = set()
     order.rank(source)
     n = len(graph.adj)
     k = max(2, int(math.log2(n) ** (1 / 3))) if n > 1 else 2
