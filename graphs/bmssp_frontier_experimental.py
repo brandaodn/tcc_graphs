@@ -83,9 +83,34 @@ def bmssp_frontier(graph, level, bound, sources, dist, k, t, order,
                         queue.insert(v, key_v)
                     elif child_boundary <= key_v < next_bound:
                         prepend.append((v, key_v))
-        prepend.extend((x, order.key(x, dist)) for x in batch
-                       if child_boundary <= order.key(x, dist) < next_bound)
+        # Diagnóstico das duas origens da reinserção: K (arestas) e Si.
+        from_k = list(prepend)
+        from_si = [(x, order.key(x, dist)) for x in batch
+                   if child_boundary <= order.key(x, dist) < next_bound]
+        from_k_vertices = {v for v, _ in from_k}
+        from_si_vertices = {v for v, _ in from_si}
+        overlap = from_k_vertices & from_si_vertices
+        # Uma duplicata entre K e Si não representa duas tarefas distintas.
+        # BatchPQ já faz deduplicação; aqui registramos a proveniência
+        # explicitamente antes de aplicar a mesma operação.
+        before = dict(queue._key_val)
+        prepend.extend(from_si)
         queue.batch_prepend(prepend)
+        after = dict(queue._key_val)
+        diagnostics.append({
+            "reason": "post_recursive_prepend",
+            "level": level,
+            "batch": sorted(map(repr, batch)),
+            "child_complete": sorted(map(repr, child_complete)),
+            "next_bound": repr(next_bound),
+            "child_boundary": repr(child_boundary),
+            "from_K": [(repr(v), repr(key)) for v, key in from_k],
+            "from_Si": [(repr(v), repr(key)) for v, key in from_si],
+            "overlap": sorted(map(repr, overlap)),
+            "queue_before": [(repr(v), repr(key)) for v, key in before.items()],
+            "queue_after": [(repr(v), repr(key)) for v, key in after.items()],
+            "changed": before != after,
+        })
         boundary = min(child_boundary, bound)
 
     complete.update(x for x in visited if order.key(x, dist) < boundary)
