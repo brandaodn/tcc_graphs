@@ -43,7 +43,8 @@ class TotalOrder:
             if cand_tie < old_tie:
                 self.hops[v] = nova_hops
                 self.pred[v] = u
-            return True, self.key(v, db)
+                return True, self.key(v, db)
+            return False, self.key(v, db)
         return False, self.key(v, db)
 
 
