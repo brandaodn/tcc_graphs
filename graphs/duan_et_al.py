@@ -7,8 +7,6 @@ from graphs.batch_pq import INF, TotalOrder, _Block, BatchPQ
 
 def base_case(graph, s, B_key, db, k, order: TotalOrder):
     U0 = set()
-    if not hasattr(order, 'completed'):
-        order.completed = set()
     heap = [(order.key(s, db), s)]
     while heap and len(U0) < k + 1:
         key_u, u = heapq.heappop(heap)
@@ -22,11 +20,9 @@ def base_case(graph, s, B_key, db, k, order: TotalOrder):
             if key_v < B_key and v not in U0:
                 heapq.heappush(heap, (key_v, v))
     if len(U0) <= k:
-        order.completed.update(U0)
         return B_key, U0
     max_key = max(order.key(v, db) for v in U0)
     U = {v for v in U0 if order.key(v, db) < max_key}
-    order.completed.update(U)
     return max_key, U
 
 
@@ -99,10 +95,8 @@ def BMSSP(graph, l, B_key, S, db, k, t, order: TotalOrder):
         K = []
         for u in Ui:
             for v, w in graph.adj[u]:
-                candidate = db[u] + w
-                previous = db[v]
                 accepted, key_v = order.relax(u, v, w, db)
-                if candidate <= previous and v not in order.completed:
+                if accepted:
                     if Bi <= key_v < B_key:
                         D.insert(v, key_v)
                     elif B_i_prime <= key_v < Bi:
@@ -116,7 +110,6 @@ def BMSSP(graph, l, B_key, S, db, k, t, order: TotalOrder):
         B_prime = min(B_i_prime, B_key)
 
     U |= {x for x in W if order.key(x, db) < B_prime}
-    order.completed.update(U)
     return B_prime, U
 
 
@@ -124,7 +117,6 @@ def sssp_duan_et_al(graph, source):
     db = defaultdict(lambda: INF)
     db[source] = 0
     order = TotalOrder()
-    order.completed = set()
     order.rank(source)
     n = len(graph.adj)
     k = max(2, int(math.log2(n) ** (1 / 3))) if n > 1 else 2
