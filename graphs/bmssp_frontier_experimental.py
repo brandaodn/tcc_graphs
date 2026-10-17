@@ -94,6 +94,22 @@ def bmssp_frontier(graph, level, bound, sources, dist, k, t, order,
         # BatchPQ já faz deduplicação; aqui registramos a proveniência
         # explicitamente antes de aplicar a mesma operação.
         before = dict(queue._key_val)
+        # Um elemento de Si ausente de Ui não foi declarado concluído
+        # pelo filho. Registre este possível trabalho pendente.
+        uncompleted = [(x, order.key(x, dist)) for x in batch
+                       if x not in child_complete]
+        if uncompleted:
+            diagnostics.append({
+                "reason": "batch_not_in_child_complete",
+                "level": level,
+                "sources": sorted(map(repr, sources)),
+                "batch": [(repr(v), repr(order.key(v, dist))) for v in batch],
+                "missing_from_Ui": [(repr(v), repr(key)) for v, key in uncompleted],
+                "child_boundary": repr(child_boundary),
+                "next_bound": repr(next_bound),
+                "from_K": [(repr(v), repr(key)) for v, key in from_k],
+                "from_Si": [(repr(v), repr(key)) for v, key in from_si],
+            })
         prepend.extend(from_si)
         queue.batch_prepend(prepend)
         after = dict(queue._key_val)
