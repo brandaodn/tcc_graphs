@@ -19,7 +19,8 @@ class RepeatedFrontierError(RuntimeError):
 
 
 def bmssp_frontier(graph, level, bound, sources, dist, k, t, order,
-                   *, diagnostics, max_iterations=10000, boundary_probe=False):
+                   *, diagnostics, max_iterations=10000, boundary_probe=False,
+                   pending_probe=False):
     if level == 0:
         child_bound, finished = base_case(graph, next(iter(sources)), bound, dist, k, order)
         if boundary_probe:
@@ -29,6 +30,9 @@ def bmssp_frontier(graph, level, bound, sources, dist, k, t, order,
             finished = set(finished) | {
                 v for v in dist if order.key(v, dist) == child_bound
             }
+        if pending_probe:
+            pending = {v for v in dist if order.key(v, dist) == child_bound}
+            return child_bound, finished, pending
         return child_bound, finished
 
     pivots, visited = find_pivots(graph, sources, bound, dist, k, order)
@@ -76,14 +80,19 @@ def bmssp_frontier(graph, level, bound, sources, dist, k, t, order,
         before_complete = set(complete)
         before_dist = dict(dist)
         extracted_keys = {v: order.key(v, dist) for v in batch}
-        child_boundary, child_complete = bmssp_frontier(
+        child_return = bmssp_frontier(
             graph, level - 1, next_bound, set(batch), dist, k, t,
             order, diagnostics=diagnostics, max_iterations=max_iterations,
-            boundary_probe=boundary_probe
+            boundary_probe=boundary_probe, pending_probe=pending_probe
         )
+        if pending_probe:
+            child_boundary, child_complete, child_pending = child_return
+        else:
+            child_boundary, child_complete = child_return
+            child_pending = set()
         complete.update(child_complete)
         prepend = []
-        for u in child_complete:
+        for u in child_complete | child_pending:
             for v, weight in graph.adj[u]:
                 previous = dist[v]
                 candidate = dist[u] + weight
@@ -123,7 +132,7 @@ def bmssp_frontier(graph, level, bound, sources, dist, k, t, order,
                 "from_Si": [(repr(v), repr(key)) for v, key in from_si],
             })
         prepend.extend(from_si)
-        if boundary_probe:
+        if boundary_probe or pending_probe:
             no_progress = (set(child_complete).issubset(before_complete)
                            and dict(dist) == before_dist)
             if no_progress:
@@ -148,10 +157,13 @@ def bmssp_frontier(graph, level, bound, sources, dist, k, t, order,
         boundary = min(child_boundary, bound)
 
     complete.update(x for x in visited if order.key(x, dist) < boundary)
+    if pending_probe:
+        return boundary, complete, {v for v in dist if order.key(v, dist) == boundary}
     return boundary, complete
 
 
-def sssp_frontier_experimental(graph, source, *, max_iterations=10000, diagnostics=None, boundary_probe=False):
+def sssp_frontier_experimental(graph, source, *, max_iterations=10000, diagnostics=None, boundary_probe=False,
+                               pending_probe=False):
     dist = defaultdict(lambda: INF)
     dist[source] = 0
     order = TotalOrder()
@@ -167,5 +179,6 @@ def sssp_frontier_experimental(graph, source, *, max_iterations=10000, diagnosti
     bmssp_frontier(graph, level, order.TOP, {source}, dist, k, t,
                    order, diagnostics=diagnostics,
                    max_iterations=max_iterations,
-                   boundary_probe=boundary_probe)
+                   boundary_probe=boundary_probe,
+                   pending_probe=pending_probe)
     return {v: dist[v] for v in vertices}
