@@ -27,10 +27,8 @@ def BMSSP_opt(graph, l, B_key, S, db, k, t, order: TotalOrder):
         K = []
         for u in Ui:
             for v, w in graph.adj[u]:
-                candidate = db[u] + w
-                previous = db[v]
                 accepted, key_v = order.relax(u, v, w, db)
-                if candidate <= previous and v not in order.completed:
+                if accepted:
                     if Bi <= key_v < B_key:
                         D.insert(v, key_v)
                     elif B_i_prime <= key_v < Bi:
@@ -41,7 +39,6 @@ def BMSSP_opt(graph, l, B_key, S, db, k, t, order: TotalOrder):
         B_prime = min(B_i_prime, B_key)
 
     U |= {x for x in W if order.key(x, db) < B_prime}
-    order.completed.update(U)
     return B_prime, U
 
 
@@ -49,7 +46,6 @@ def sssp_duan_et_al_opt(graph, source):
     db = defaultdict(lambda: INF)
     db[source] = 0
     order = TotalOrder()
-    order.completed = set()
     order.rank(source)
     n = len(graph.adj)
     k = max(2, int(math.log2(n) ** (1 / 3))) if n > 1 else 2
