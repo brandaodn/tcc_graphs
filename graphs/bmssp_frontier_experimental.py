@@ -97,6 +97,10 @@ def bmssp_frontier(graph, level, bound, sources, dist, k, t, order,
             for v, weight in graph.adj[u]:
                 previous = dist[v]
                 candidate = dist[u] + weight
+                # Uma rota estritamente pior nao pode alterar distancias,
+                # saltos ou desempate. Igualdade deve seguir para relax().
+                if candidate > previous:
+                    continue
                 # A condição do artigo inclui igualdade; relax somente
                 # atualiza a chave, não governa elegibilidade da aresta.
                 _, key_v = order.relax(u, v, weight, dist)
