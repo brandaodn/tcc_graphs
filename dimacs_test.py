@@ -1,6 +1,6 @@
-from time import process_time
+from time import process_time, perf_counter
 from datetime import datetime
-from graphs.graphs import Graph, dijkstra, is_fully_reachable
+from graphs.graphs import Graph, dijkstra, is_fully_reachable, count_dist_errors
 from graphs.duan_et_al import sssp_duan_et_al
 from graphs.duan_et_al_iter import sssp_duan_et_al_iter
 from graphs.duan_et_al_opt import sssp_duan_et_al_opt
@@ -70,9 +70,11 @@ def process_file(arquivo_gz: str, r: int, algorithms: tuple, transformar: bool) 
             )
 
             source = 1
+            start_wall = perf_counter()
             start_time = process_time()
             dist = alg(graph, source)
             end_time = process_time()
+            wall_time = perf_counter() - start_wall
 
             delta_time = end_time - start_time
 
@@ -86,10 +88,7 @@ def process_file(arquivo_gz: str, r: int, algorithms: tuple, transformar: bool) 
             else:
                 if ref_dist is None:
                     ref_dist = dijkstra(graph, source)
-                error_count = sum(
-                    1 for v, d in ref_dist.items()
-                    if (dist.get(v, float('inf')) != d and abs(dist.get(v, float('inf')) - d) > 1e-9)
-                )
+                error_count = count_dist_errors(ref_dist, dist)
                 is_correct = (error_count == 0)
 
             file_results.append({
@@ -98,6 +97,7 @@ def process_file(arquivo_gz: str, r: int, algorithms: tuple, transformar: bool) 
                 "num_edges": num_edges,
                 "algorithm": alg.__name__,
                 "execution_time": delta_time,
+                "wall_time": wall_time,
                 "repetition": i,
                 "fully_reachable": is_fully_reachable(graph, source, num_vertices),
                 "explored_percentage": explored_percentage,
@@ -219,6 +219,7 @@ with open(f'{dir}{name}.csv', 'w', newline='') as f:
             "num_edges",
             "algorithm",
             "execution_time",
+            "wall_time",
             "repetition",
             "fully_reachable",
             "explored_percentage",

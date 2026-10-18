@@ -51,13 +51,10 @@ def graph_cache_path(dir_path, num_v, k, i):
 def dijkstra(graph, source):
     INF = float('inf')
 
-    # pega todos os vértices (origem + destinos)
-    vertices = set(graph.adj.keys())
-    for u in graph.adj:
-        for v, _ in graph.adj[u]:
-            vertices.add(v)
-
-    dist = {v: INF for v in vertices}
+    # Inicialização preguiçosa: só os vértices alcançados entram em dist, como
+    # nas implementações do BMSSP. Pré-inicializar todos os vértices custa O(n)
+    # e domina o tempo quando a origem alcança poucos vértices (k <= 1).
+    dist = defaultdict(lambda: INF)
     dist[source] = 0.0
 
     count = 0
@@ -76,7 +73,18 @@ def dijkstra(graph, source):
                 count += 1
                 heapq.heappush(pq, (dist[v], count, v))
 
-    return dist
+    return dict(dist)
+
+def count_dist_errors(ref_dist, dist, tol=1e-9):
+    """Conta vértices cuja distância em dist difere da referência. Vértices
+    ausentes de um dos dicionários são tratados como inalcançáveis (INF)."""
+    INF = float('inf')
+    errors = 0
+    for v in ref_dist.keys() | dist.keys():
+        a, b = ref_dist.get(v, INF), dist.get(v, INF)
+        if a != b and abs(a - b) > tol:
+            errors += 1
+    return errors
 
 def bellman_ford(graph, source):
     INF = float('inf')

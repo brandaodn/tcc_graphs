@@ -92,6 +92,16 @@ chmod +x routine.sh
 
 Para aplicar a transformação de redução de grau em qualquer um dos scripts de teste, adicione a flag `--transform`.
 
+Os CSVs registram dois tempos por execução: `execution_time` (tempo de CPU, via `process_time`) e `wall_time` (tempo de parede, via `perf_counter`).
+
+### 4.3. Testes de Corretude
+
+Compara as distâncias de todas as versões do BMSSP com as do Dijkstra em milhares de grafos aleatórios pequenos:
+
+```bash
+python -m unittest discover tests
+```
+
 ---
 
 ## 5. Análise dos Resultados

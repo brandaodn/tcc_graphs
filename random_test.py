@@ -1,6 +1,7 @@
 from random import seed
 from graphs.graphs import (
     dijkstra,
+    count_dist_errors,
     generate_random_graph,
     is_fully_reachable,
     save_graph,
@@ -10,7 +11,7 @@ from graphs.graphs import (
 from graphs.duan_et_al import sssp_duan_et_al
 from graphs.duan_et_al_iter import sssp_duan_et_al_iter
 from graphs.duan_et_al_opt import sssp_duan_et_al_opt
-from time import process_time
+from time import process_time, perf_counter
 import sys
 from graphs.degree_reduction import bounded_out_degree
 import csv
@@ -170,9 +171,11 @@ for num_v in num_vertices:
                     )
 
                     source = 0
+                    start_wall = perf_counter()
                     start_time = process_time()
                     dist = alg(g, source)
                     end_time = process_time()
+                    wall_time = perf_counter() - start_wall
 
                     delta_time = end_time - start_time
 
@@ -186,10 +189,7 @@ for num_v in num_vertices:
                     else:
                         if ref_dist is None:
                             ref_dist = dijkstra(g, source)
-                        error_count = sum(
-                            1 for v, d in ref_dist.items()
-                            if (dist.get(v, float('inf')) != d and abs(dist.get(v, float('inf')) - d) > 1e-9)
-                        )
+                        error_count = count_dist_errors(ref_dist, dist)
                         is_correct = (error_count == 0)
 
                     results.append({
@@ -197,6 +197,7 @@ for num_v in num_vertices:
                         "avg_degree_k": k,
                         "algorithm": alg.__name__,
                         "execution_time": delta_time,
+                        "wall_time": wall_time,
                         "edge_estimate": edge_estimate,
                         "graph": f"n{num_v}k{k:.2f}i{i}",
                         "fully_reachable": is_fully_reachable(g, source, num_v),
@@ -228,6 +229,7 @@ with open(f'{dir}{name}.csv', 'w', newline='') as f:
             "avg_degree_k",
             "algorithm",
             "execution_time",
+            "wall_time",
             "edge_estimate",
             "graph",
             "fully_reachable",

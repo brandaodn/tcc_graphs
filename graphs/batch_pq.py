@@ -169,11 +169,15 @@ class BatchPQ:
         return x, [vertex for _, vertex in valid]
 
     def _collect_prefix(self, seq, out, limit):
+        # Só entradas vigentes contam para o limite: se as obsoletas contassem,
+        # a coleta poderia parar antes de alcançar chaves válidas menores em
+        # blocos seguintes de D0, e o Pull retornaria um S' que não é o menor.
         collected = 0
         for block in seq:
             for pair in block.items:
                 out.append(pair)
-                collected += 1
+                if self._key_val.get(pair[1]) == pair[0]:
+                    collected += 1
             if collected >= limit:
                 break
 
