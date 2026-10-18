@@ -136,3 +136,20 @@ def is_fully_reachable(graph, source, num_vertices):
                 queue.append(v)
 
     return len(visited) == num_vertices
+
+def shortest_path(pred, source, target, drop_aux=True):
+    """Reconstrói o caminho source -> target a partir do dicionário de
+    predecessores. Retorna None se target não foi alcançado. Com drop_aux=True,
+    remove os vértices auxiliares ("u#1", "u#2", ...) criados por
+    bounded_out_degree, devolvendo o caminho em termos do grafo original."""
+    if target != source and target not in pred:
+        return None
+    path = [target]
+    while path[-1] != source:
+        path.append(pred[path[-1]])
+        if len(path) > len(pred) + 1:
+            raise ValueError("ciclo no dicionário de predecessores")
+    path.reverse()
+    if drop_aux:
+        path = [v for v in path if not (isinstance(v, str) and "#" in v)]
+    return path

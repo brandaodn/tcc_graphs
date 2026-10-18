@@ -11,6 +11,7 @@ from graphs import (
     Graph,
     dijkstra,
     count_dist_errors,
+    shortest_path,
     bounded_out_degree,
     sssp_duan_et_al,
     sssp_duan_et_al_iter,
@@ -61,6 +62,54 @@ class TestSSSP(unittest.TestCase):
         g.add_edge(2, 3, 1)
         self.assertEqual(dijkstra(g, 0), {0: 0.0, 1: 5})
         self.check(g)
+
+
+class TestShortestPath(unittest.TestCase):
+
+    def assert_valid_paths(self, g, original, source=0):
+        """Para cada vértice alcançado do grafo original, o caminho
+        reconstruído deve começar na origem, usar arestas existentes no grafo
+        original e ter custo igual à distância do Dijkstra."""
+        weight = {}
+        for u in original.adj:
+            for v, w in original.adj[u]:
+                weight[(u, v)] = min(w, weight.get((u, v), float('inf')))
+        ref = dijkstra(original, source)
+        for alg in ALGORITHMS:
+            with self.subTest(algorithm=alg.__name__):
+                dist, pred = alg(g, source, return_pred=True)
+                self.assertEqual(count_dist_errors(ref, {v: dist[v] for v in ref}), 0)
+                for v, d in ref.items():
+                    path = shortest_path(pred, source, v)
+                    self.assertEqual(path[0], source)
+                    self.assertEqual(path[-1], v)
+                    cost = sum(weight[(a, b)] for a, b in zip(path, path[1:]))
+                    self.assertAlmostEqual(cost, d)
+
+    def test_random_graphs(self):
+        rng = random.Random(3)
+        for _ in range(300):
+            n = rng.randint(5, 200)
+            g = random_graph(rng, n, rng.randint(n, 4 * n))
+            self.assert_valid_paths(g, g)
+
+    def test_random_graphs_bounded_degree(self):
+        # Os vértices auxiliares "u#k" são removidos do caminho, que deve
+        # então ser válido no grafo original
+        rng = random.Random(4)
+        for _ in range(100):
+            n = rng.randint(5, 200)
+            g = random_graph(rng, n, rng.randint(n, 4 * n))
+            self.assert_valid_paths(bounded_out_degree(g, 2), g)
+
+    def test_unreachable_and_source(self):
+        g = Graph()
+        g.add_edge(0, 1, 5)
+        g.add_edge(2, 3, 1)
+        _, pred = sssp_duan_et_al_opt(g, 0, return_pred=True)
+        self.assertEqual(shortest_path(pred, 0, 0), [0])
+        self.assertEqual(shortest_path(pred, 0, 1), [0, 1])
+        self.assertIsNone(shortest_path(pred, 0, 3))
 
 
 class TestCountDistErrors(unittest.TestCase):

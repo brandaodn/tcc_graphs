@@ -108,7 +108,10 @@ def BMSSP(graph, l, B_key, S, db, k, t, order: TotalOrder):
     return B_prime, U
 
 
-def sssp_duan_et_al(graph, source):
+def sssp_duan_et_al(graph, source, return_pred=False):
+    """Retorna as distâncias a partir de source. Com return_pred=True, retorna
+    (dist, pred), em que pred[v] é o predecessor de v num caminho mínimo; use
+    shortest_path(pred, source, v) para reconstruir o caminho."""
     db = defaultdict(lambda: INF)
     db[source] = 0
     order = TotalOrder()
@@ -118,4 +121,6 @@ def sssp_duan_et_al(graph, source):
     t = max(2, int(math.log2(n) ** (2 / 3))) if n > 1 else 2
     l = int(math.log2(n) / t) + 1 if n > 1 else 1
     BMSSP(graph, l, order.TOP, {source}, db, k, t, order)
+    if return_pred:
+        return dict(db), dict(order.pred)
     return dict(db)

@@ -94,7 +94,19 @@ Para aplicar a transformação de redução de grau em qualquer um dos scripts d
 
 Os CSVs registram dois tempos por execução: `execution_time` (tempo de CPU, via `process_time`) e `wall_time` (tempo de parede, via `perf_counter`).
 
-### 4.3. Testes de Corretude
+### 4.3. Reconstrução do Caminho Mínimo
+
+Por padrão, as funções `sssp_duan_et_al*` retornam apenas as distâncias. Com `return_pred=True`, retornam também os predecessores, e `shortest_path` reconstrói o caminho até qualquer vértice (removendo os vértices auxiliares `u#k` criados por `bounded_out_degree`):
+
+```python
+from graphs import load_graph, sssp_duan_et_al_opt, shortest_path
+
+g = load_graph("data/lote3-tcc2/graphs/n10000k3.00i0.json")
+dist, pred = sssp_duan_et_al_opt(g, 0, return_pred=True)
+print(dist[42], shortest_path(pred, 0, 42))  # None se 42 não for alcançável
+```
+
+### 4.4. Testes de Corretude
 
 Compara as distâncias de todas as versões do BMSSP com as do Dijkstra em milhares de grafos aleatórios pequenos:
 
