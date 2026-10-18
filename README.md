@@ -12,6 +12,7 @@ Os algoritmos estão disponíveis no pacote `graphs`:
 * **`sssp_duan_et_al`** (`graphs/duan_et_al.py`): Implementação recursiva original do algoritmo BMSSP com relação de ordem total de caminhos e fila de prioridade em lote (`BatchPQ`).
 * **`sssp_duan_et_al_iter`** (`graphs/duan_et_al_iter.py`): Versão iterativa do BMSSP utilizando pilha explícita de execução de *frames*, eliminando a recursão de chamadas em profundidade.
 * **`sssp_duan_et_al_opt`** (`graphs/duan_et_al_opt.py`): Versão otimizada do BMSSP substituindo o gargalo de `BatchPQ` por `BatchPQFast` (remoção preguiçosa de chaves e inserção por busca binária).
+* **`sssp_duan_et_al_fast`** (`graphs/duan_et_al_fast.py`): Mesmo algoritmo da versão otimizada, com representação de baixo custo para Python (vértices renumerados, `db`/`hops`/`pred` em listas e relaxamento sem chamadas de método). Serve como "melhor caso" do BMSSP em Python; a versão fiel ao artigo continua sendo a referência.
 * **`bounded_out_degree`** (`graphs/degree_reduction.py`): Transformação que reduz o grau de saída do grafo para um limite constante ($d_{out} \le 2$), conforme pré-requisito teórico do artigo.
 
 ---
@@ -26,6 +27,7 @@ Os algoritmos estão disponíveis no pacote `graphs`:
 │   ├── duan_et_al.py       # BMSSP recursivo
 │   ├── duan_et_al_iter.py  # BMSSP iterativo
 │   ├── duan_et_al_opt.py   # BMSSP com BatchPQ otimizada
+│   ├── duan_et_al_fast.py  # BMSSP otimizado com listas indexadas (melhor caso)
 │   └── degree_reduction.py # Redutor de grau de saída
 ├── notebooks/          # Notebooks Jupyter de consolidação e análise estatística
 │   ├── lote1-analise.ipynb # Resultados do Lote 1 (Dijkstra vs BMSSP recursivo)
@@ -38,6 +40,7 @@ Os algoritmos estão disponíveis no pacote `graphs`:
 │   ├── lote3-tcc2/         # Grafos sintéticos e CSVs do lote 3
 │   └── legacy/             # Resultados preliminares arquivados
 ├── input_graphs/       # Instâncias reais de redes viárias (DIMACS 9th Challenge)
+├── tests/              # Testes de corretude contra o Dijkstra
 ├── generate_graphs.py  # Gerador de instâncias sintéticas G(n, p)
 ├── random_test.py      # Execução de testes em grafos sintéticos
 ├── dimacs_test.py      # Execução de testes em instâncias DIMACS

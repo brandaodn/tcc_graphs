@@ -16,9 +16,11 @@ from graphs import (
     sssp_duan_et_al,
     sssp_duan_et_al_iter,
     sssp_duan_et_al_opt,
+    sssp_duan_et_al_fast,
 )
 
-ALGORITHMS = (sssp_duan_et_al, sssp_duan_et_al_iter, sssp_duan_et_al_opt)
+ALGORITHMS = (sssp_duan_et_al, sssp_duan_et_al_iter, sssp_duan_et_al_opt,
+              sssp_duan_et_al_fast)
 
 
 def random_graph(rng, n, m):
