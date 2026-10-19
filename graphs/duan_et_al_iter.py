@@ -19,7 +19,7 @@ def _open_frame(graph, l, B, S, db, k, t, order):
         f.D.insert(x, order.key(x, db))
     f.B_prime = min((order.key(x, db) for x in P), default=B)
     f.U = set()
-    f.limit = (k ** 2) * (2 ** (l * t))
+    f.limit = k * (2 ** (l * t))
     f.Bi = f.Si = None
     return f
 

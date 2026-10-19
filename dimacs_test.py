@@ -5,7 +5,7 @@ from graphs.duan_et_al import sssp_duan_et_al
 from graphs.duan_et_al_iter import sssp_duan_et_al_iter
 from graphs.duan_et_al_opt import sssp_duan_et_al_opt
 from graphs.duan_et_al_fast import sssp_duan_et_al_fast
-from graphs.degree_reduction import bounded_out_degree
+from graphs.degree_reduction import bounded_out_degree, constant_degree, is_original_vertex
 import gzip
 import shutil
 import csv
@@ -32,7 +32,7 @@ def load_graph(gr_file: str) -> tuple[Graph, int, int]:
     return graph, int(n), int(m)
 
 
-def process_file(arquivo_gz: str, r: int, algorithms: tuple, transformar: bool) -> list[dict]:
+def process_file(arquivo_gz: str, r: int, algorithms: tuple, transformar: str | None) -> list[dict]:
     """Descompacta, carrega e roda os algoritmos sobre um único arquivo .gz,
     retornando a lista de resultados (um dict por execução)."""
 
@@ -44,10 +44,14 @@ def process_file(arquivo_gz: str, r: int, algorithms: tuple, transformar: bool) 
         with open(arquivo_gr, 'wb') as f_out:
             shutil.copyfileobj(f_in, f_out)
 
-    graph, num_vertices, num_edges = load_graph(arquivo_gr)
+    raw_graph, num_vertices, num_edges = load_graph(arquivo_gr)
 
-    if transformar:
-        graph = bounded_out_degree(graph, 2)
+    if transformar == "cycle":
+        graph = constant_degree(raw_graph)
+    elif transformar == "out":
+        graph = bounded_out_degree(raw_graph, 2)
+    else:
+        graph = raw_graph
 
     print("n = {}, m = {}".format(num_vertices, num_edges))
 
@@ -79,7 +83,8 @@ def process_file(arquivo_gz: str, r: int, algorithms: tuple, transformar: bool) 
 
             delta_time = end_time - start_time
 
-            num_explored = sum(1 for v in dist if dist[v] < float('inf'))
+            # Só vértices do grafo original: os auxiliares da transformação não contam
+            num_explored = sum(1 for v in dist if dist[v] < float('inf') and is_original_vertex(v))
             explored_percentage = (num_explored / num_vertices) * 100
 
             if alg == dijkstra:
@@ -100,7 +105,8 @@ def process_file(arquivo_gz: str, r: int, algorithms: tuple, transformar: bool) 
                 "execution_time": delta_time,
                 "wall_time": wall_time,
                 "repetition": i,
-                "fully_reachable": is_fully_reachable(graph, source, num_vertices),
+                "fully_reachable": is_fully_reachable(raw_graph, source, num_vertices),
+                "transform": transformar or "none",
                 "explored_percentage": explored_percentage,
                 "is_correct": is_correct,
                 "error_count": error_count
@@ -148,8 +154,14 @@ group.add_argument(
 parser.add_argument(
     "--transform",
     dest="transformar",
-    action="store_true",
-    help="Aplica a transformação de redução de grau (bounded_out_degree) no grafo antes de executar os algoritmos."
+    nargs="?",
+    const="out",
+    default=None,
+    choices=["out", "cycle"],
+    help="Aplica uma redução de grau no grafo antes de executar os algoritmos: "
+         "'out' (padrão de --transform sem valor) limita só o grau de saída com "
+         "bounded_out_degree; 'cycle' usa constant_degree, a transformação do "
+         "artigo, com grau de entrada e de saída <= 2."
 )
 parser.add_argument(
     "--output-dir",
@@ -224,6 +236,7 @@ with open(f'{dir}{name}.csv', 'w', newline='') as f:
             "wall_time",
             "repetition",
             "fully_reachable",
+            "transform",
             "explored_percentage",
             "is_correct",
             "error_count"

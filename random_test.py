@@ -14,7 +14,7 @@ from graphs.duan_et_al_opt import sssp_duan_et_al_opt
 from graphs.duan_et_al_fast import sssp_duan_et_al_fast
 from time import process_time, perf_counter
 import sys
-from graphs.degree_reduction import bounded_out_degree
+from graphs.degree_reduction import bounded_out_degree, constant_degree, is_original_vertex
 import csv
 from datetime import datetime
 import os
@@ -68,8 +68,14 @@ parser.add_argument(
 parser.add_argument(
     "--transform",
     dest="transform",
-    action="store_true",
-    help="Aplica a transformação de redução de grau (bounded_out_degree) no grafo antes de executar os algoritmos."
+    nargs="?",
+    const="out",
+    default=None,
+    choices=["out", "cycle"],
+    help="Aplica uma redução de grau no grafo antes de executar os algoritmos: "
+         "'out' (padrão de --transform sem valor) limita só o grau de saída com "
+         "bounded_out_degree; 'cycle' usa constant_degree, a transformação do "
+         "artigo, com grau de entrada e de saída <= 2."
 )
 parser.add_argument(
     "--output-dir",
@@ -147,7 +153,9 @@ for num_v in num_vertices:
                 # args.mode == "generate"
                 g_raw = generate_random_graph(num_v, edge_prob)
 
-            if args.transform:
+            if args.transform == "cycle":
+                g = constant_degree(g_raw)
+            elif args.transform == "out":
                 g = bounded_out_degree(g_raw, 2)
             else:
                 g = g_raw
@@ -181,7 +189,8 @@ for num_v in num_vertices:
 
                     delta_time = end_time - start_time
 
-                    num_explored = sum(1 for v in dist if dist[v] < float('inf'))
+                    # Só vértices do grafo original: os auxiliares da transformação não contam
+                    num_explored = sum(1 for v in dist if dist[v] < float('inf') and is_original_vertex(v))
                     explored_percentage = (num_explored / num_v) * 100
 
                     if alg == dijkstra:
@@ -202,7 +211,8 @@ for num_v in num_vertices:
                         "wall_time": wall_time,
                         "edge_estimate": edge_estimate,
                         "graph": f"n{num_v}k{k:.2f}i{i}",
-                        "fully_reachable": is_fully_reachable(g, source, num_v),
+                        "fully_reachable": is_fully_reachable(g_raw, source, num_v),
+                        "transform": args.transform or "none",
                         "explored_percentage": explored_percentage,
                         "is_correct": is_correct,
                         "error_count": error_count
@@ -235,6 +245,7 @@ with open(f'{dir}{name}.csv', 'w', newline='') as f:
             "edge_estimate",
             "graph",
             "fully_reachable",
+            "transform",
             "explored_percentage",
             "is_correct",
             "error_count"

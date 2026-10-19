@@ -14,8 +14,8 @@ def base_case(graph, s, B_key, db, k, order: TotalOrder):
             continue
         U0.add(u)
         for v, w in graph.adj[u]:
-            accepted, key_v = order.relax(u, v, w, db)
-            if accepted and key_v < B_key:
+            accepted, key_v = order.relax(u, v, w, db, B_key)
+            if accepted:
                 heapq.heappush(heap, (key_v, v))
     if len(U0) <= k:
         return B_key, U0
@@ -79,7 +79,7 @@ def BMSSP(graph, l, B_key, S, db, k, t, order: TotalOrder):
     B_prime = min((order.key(x, db) for x in P), default=B_key)
     U = set()
 
-    while len(U) < (k ** 2) * (2 ** (l * t)) and not D.is_empty():
+    while len(U) < k * (2 ** (l * t)) and not D.is_empty():
         Bi, Si = D.pull()
         if not Si:
             break

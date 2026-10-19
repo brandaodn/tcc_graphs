@@ -7,12 +7,14 @@ Executar a partir da raiz do repositório:
 import random
 import unittest
 
+from graphs.degree_reduction import AuxVertex
 from graphs import (
     Graph,
     dijkstra,
     count_dist_errors,
     shortest_path,
     bounded_out_degree,
+    constant_degree,
     sssp_duan_et_al,
     sssp_duan_et_al_iter,
     sssp_duan_et_al_opt,
@@ -57,6 +59,21 @@ class TestSSSP(unittest.TestCase):
         for _ in range(300):
             n = rng.randint(5, 300)
             self.check(bounded_out_degree(random_graph(rng, n, rng.randint(n, 4 * n)), 2))
+
+    def test_random_graphs_constant_degree(self):
+        # Ciclos de peso zero: antes de o relaxamento rejeitar empates piores
+        # na ordem total, o BMSSP entrava em laço infinito nestes grafos
+        rng = random.Random(5)
+        for _ in range(300):
+            n = rng.randint(5, 200)
+            g = random_graph(rng, n, rng.randint(n, 4 * n))
+            ref = dijkstra(g, 0)
+            h = constant_degree(g)
+            for alg in ALGORITHMS:
+                with self.subTest(algorithm=alg.__name__):
+                    dist = alg(h, 0)
+                    dist = {v: d for v, d in dist.items() if not isinstance(v, AuxVertex)}
+                    self.assertEqual(count_dist_errors(ref, dist), 0)
 
     def test_unreachable_vertices(self):
         g = Graph()
@@ -104,6 +121,13 @@ class TestShortestPath(unittest.TestCase):
             g = random_graph(rng, n, rng.randint(n, 4 * n))
             self.assert_valid_paths(bounded_out_degree(g, 2), g)
 
+    def test_random_graphs_constant_degree(self):
+        rng = random.Random(6)
+        for _ in range(100):
+            n = rng.randint(5, 200)
+            g = random_graph(rng, n, rng.randint(n, 4 * n))
+            self.assert_valid_paths(constant_degree(g), g)
+
     def test_unreachable_and_source(self):
         g = Graph()
         g.add_edge(0, 1, 5)
@@ -112,6 +136,31 @@ class TestShortestPath(unittest.TestCase):
         self.assertEqual(shortest_path(pred, 0, 0), [0])
         self.assertEqual(shortest_path(pred, 0, 1), [0, 1])
         self.assertIsNone(shortest_path(pred, 0, 3))
+
+
+class TestConstantDegree(unittest.TestCase):
+
+    def test_degrees_at_most_two(self):
+        rng = random.Random(8)
+        g = random_graph(rng, 300, 1500)
+        h = constant_degree(g)
+        indeg = {}
+        for u, edges in h.adj.items():
+            self.assertLessEqual(len(edges), 2)
+            for v, _ in edges:
+                indeg[v] = indeg.get(v, 0) + 1
+        self.assertLessEqual(max(indeg.values()), 2)
+        # O(m) vértices: um por par (vértice, vizinho)
+        self.assertLessEqual(len(h.adj), 2 * sum(len(e) for e in g.adj.values()))
+
+    def test_isolated_and_sink_vertices_kept(self):
+        g = Graph()
+        g.adj[5]
+        g.add_edge(0, 1, 2)
+        h = constant_degree(g)
+        self.assertIn(5, h.adj)
+        self.assertIn(1, h.adj)
+        self.assertEqual(dijkstra(h, 0)[1], 2)
 
 
 class TestCountDistErrors(unittest.TestCase):

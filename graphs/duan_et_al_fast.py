@@ -30,17 +30,17 @@ def _base_case(adj, s, B, db, hops, pred, k):
         for v, w in adj[u]:
             nd = du + w
             dv = db[v]
-            if nd < dv:
-                db[v] = nd; hops[v] = hu; pred[v] = u
-            elif nd == dv:
-                p = pred[v]
-                if (hu, u) < (hops[v], v if p < 0 else p):
-                    hops[v] = hu; pred[v] = u
-            else:
+            if nd > dv:
                 continue
-            key_v = (db[v], hops[v], v)
-            if key_v < B:
-                heapq.heappush(heap, (key_v, v))
+            if nd == dv:
+                p = pred[v]
+                if (hu, u) > (hops[v], v if p < 0 else p):
+                    continue
+            key_v = (nd, hu, v)
+            if key_v >= B:
+                continue
+            db[v] = nd; hops[v] = hu; pred[v] = u
+            heapq.heappush(heap, (key_v, v))
     if len(U0) <= k:
         return B, U0
     max_key = max((db[v], hops[v], v) for v in U0)
@@ -57,15 +57,14 @@ def _find_pivots(adj, S, B, db, hops, pred, k):
             for v, w in adj[u]:
                 nd = du + w
                 dv = db[v]
-                if nd < dv:
-                    db[v] = nd; hops[v] = hu; pred[v] = u
-                elif nd == dv:
-                    p = pred[v]
-                    if (hu, u) < (hops[v], v if p < 0 else p):
-                        hops[v] = hu; pred[v] = u
-                else:
+                if nd > dv:
                     continue
-                if (db[v], hops[v], v) < B:
+                if nd == dv:
+                    p = pred[v]
+                    if (hu, u) > (hops[v], v if p < 0 else p):
+                        continue
+                db[v] = nd; hops[v] = hu; pred[v] = u
+                if (nd, hu, v) < B:
                     Wi.add(v)
         W |= Wi
         Wi_prev = Wi
@@ -109,7 +108,7 @@ def _bmssp(adj, l, B, S, db, hops, pred, k, t):
 
     B_prime = min(((db[x], hops[x], x) for x in P), default=B)
     U = set()
-    limit = (k ** 2) * (2 ** (l * t))
+    limit = k * (2 ** (l * t))
 
     while len(U) < limit and not D.is_empty():
         Bi, Si = D.pull()
@@ -125,15 +124,14 @@ def _bmssp(adj, l, B, S, db, hops, pred, k, t):
             for v, w in adj[u]:
                 nd = du + w
                 dv = db[v]
-                if nd < dv:
-                    db[v] = nd; hops[v] = hu; pred[v] = u
-                elif nd == dv:
-                    p = pred[v]
-                    if (hu, u) < (hops[v], v if p < 0 else p):
-                        hops[v] = hu; pred[v] = u
-                else:
+                if nd > dv:
                     continue
-                key_v = (db[v], hops[v], v)
+                if nd == dv:
+                    p = pred[v]
+                    if (hu, u) > (hops[v], v if p < 0 else p):
+                        continue
+                db[v] = nd; hops[v] = hu; pred[v] = u
+                key_v = (nd, hu, v)
                 if Bi <= key_v < B:
                     insert(v, key_v)
                 elif B_i_prime <= key_v < Bi:

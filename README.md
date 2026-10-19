@@ -13,7 +13,8 @@ Os algoritmos estão disponíveis no pacote `graphs`:
 * **`sssp_duan_et_al_iter`** (`graphs/duan_et_al_iter.py`): Versão iterativa do BMSSP utilizando pilha explícita de execução de *frames*, eliminando a recursão de chamadas em profundidade.
 * **`sssp_duan_et_al_opt`** (`graphs/duan_et_al_opt.py`): Versão otimizada do BMSSP substituindo o gargalo de `BatchPQ` por `BatchPQFast` (remoção preguiçosa de chaves e inserção por busca binária).
 * **`sssp_duan_et_al_fast`** (`graphs/duan_et_al_fast.py`): Mesmo algoritmo da versão otimizada, com representação de baixo custo para Python (vértices renumerados, `db`/`hops`/`pred` em listas e relaxamento sem chamadas de método). Serve como "melhor caso" do BMSSP em Python; a versão fiel ao artigo continua sendo a referência.
-* **`bounded_out_degree`** (`graphs/degree_reduction.py`): Transformação que reduz o grau de saída do grafo para um limite constante ($d_{out} \le 2$), conforme pré-requisito teórico do artigo.
+* **`bounded_out_degree`** (`graphs/degree_reduction.py`): Transformação que limita apenas o grau de saída ($d_{out} \le 2$), substituindo cada vértice de grau alto por uma cadeia de vértices auxiliares ligados por arestas de peso zero.
+* **`constant_degree`** (`graphs/degree_reduction.py`): Transformação descrita no artigo (Seção 2, *Constant-Degree Graph*): cada vértice $v$ vira um ciclo de arestas de peso zero com um vértice $x_{vw}$ para cada vizinho $w$, e cada aresta $(u, v)$ vira $x_{uv} \to x_{vu}$. Garante grau de entrada **e** de saída $\le 2$, com $O(m)$ vértices e arestas.
 
 ---
 
@@ -28,7 +29,7 @@ Os algoritmos estão disponíveis no pacote `graphs`:
 │   ├── duan_et_al_iter.py  # BMSSP iterativo
 │   ├── duan_et_al_opt.py   # BMSSP com BatchPQ otimizada
 │   ├── duan_et_al_fast.py  # BMSSP otimizado com listas indexadas (melhor caso)
-│   └── degree_reduction.py # Redutor de grau de saída
+│   └── degree_reduction.py # Reduções de grau (bounded_out_degree e constant_degree)
 ├── notebooks/          # Notebooks Jupyter de consolidação e análise estatística
 │   ├── lote1-analise.ipynb # Resultados do Lote 1 (Dijkstra vs BMSSP recursivo)
 │   ├── lote2-analise.ipynb # Resultados do Lote 2 (inclusão do BMSSP iterativo)
@@ -93,13 +94,18 @@ chmod +x routine.sh
   python dimacs_test.py input_graphs/ -r 5 --track
   ```
 
-Para aplicar a transformação de redução de grau em qualquer um dos scripts de teste, adicione a flag `--transform`.
+Para aplicar uma redução de grau em qualquer um dos scripts de teste, use a flag `--transform`:
+
+* `--transform` (ou `--transform out`): `bounded_out_degree`, que limita só o grau de saída;
+* `--transform cycle`: `constant_degree`, a transformação do artigo, com grau de entrada e de saída $\le 2$.
+
+A coluna `transform` dos CSVs registra o modo usado (`none`, `out` ou `cycle`), e `explored_percentage` conta apenas os vértices do grafo original.
 
 Os CSVs registram dois tempos por execução: `execution_time` (tempo de CPU, via `process_time`) e `wall_time` (tempo de parede, via `perf_counter`).
 
 ### 4.3. Reconstrução do Caminho Mínimo
 
-Por padrão, as funções `sssp_duan_et_al*` retornam apenas as distâncias. Com `return_pred=True`, retornam também os predecessores, e `shortest_path` reconstrói o caminho até qualquer vértice (removendo os vértices auxiliares `u#k` criados por `bounded_out_degree`):
+Por padrão, as funções `sssp_duan_et_al*` retornam apenas as distâncias. Com `return_pred=True`, retornam também os predecessores, e `shortest_path` reconstrói o caminho até qualquer vértice (em termos do grafo original, removendo os vértices auxiliares criados por `bounded_out_degree` e `constant_degree`):
 
 ```python
 from graphs import load_graph, sssp_duan_et_al_opt, shortest_path

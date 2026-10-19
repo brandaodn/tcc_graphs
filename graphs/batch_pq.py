@@ -24,27 +24,31 @@ class TotalOrder:
     def key(self, v, db):
         return (db[v], self.hops[v], self.rank(v))
 
-    def relax(self, u, v, w, db):
-        """Tenta relaxar a aresta (u,v) respeitando a ordem total de caminhos
-        (distância, saltos, rank do predecessor). Retorna (aceito, nova_chave)."""
+    def relax(self, u, v, w, db, B=None):
+        """Tenta relaxar a aresta (u,v). Aceita quando o caminho candidato é
+        menor ou igual ao atual na ordem total de caminhos <comprimento, nº de
+        vértices, v, Pred[v], ...> (Seção 2 do artigo). A igualdade só ocorre
+        quando u já é o predecessor de v; um empate de distância com outro
+        predecessor é decidido pela ordem total, e o caminho maior é rejeitado.
+        Com B, só relaxa se a nova chave for menor que B (Algoritmo 2, linha 8).
+        Retorna (aceito, nova_chave); a chave é None quando não aceito."""
         nova_dist = db[u] + w
         nova_hops = self.hops[u] + 1
         old_dist = db[v]
-        old_hops = self.hops[v]
 
-        if nova_dist < old_dist:
-            db[v] = nova_dist
-            self.hops[v] = nova_hops
-            self.pred[v] = u
-            return True, self.key(v, db)
-        elif nova_dist == old_dist:
+        if nova_dist > old_dist:
+            return False, None
+        if nova_dist == old_dist:
             cand_tie = (nova_hops, self.rank(u))
-            old_tie = (old_hops, self.rank(self.pred.get(v, v)))
-            if cand_tie < old_tie:
-                self.hops[v] = nova_hops
-                self.pred[v] = u
-            return True, self.key(v, db)
-        return False, self.key(v, db)
+            old_tie = (self.hops[v], self.rank(self.pred.get(v, v)))
+            if cand_tie > old_tie:
+                return False, None
+        if B is not None and (nova_dist, nova_hops, self.rank(v)) >= B:
+            return False, None
+        db[v] = nova_dist
+        self.hops[v] = nova_hops
+        self.pred[v] = u
+        return True, self.key(v, db)
 
 
 class _Block:

@@ -15,7 +15,7 @@ def BMSSP_opt(graph, l, B_key, S, db, k, t, order: TotalOrder):
 
     B_prime = min((order.key(x, db) for x in P), default=B_key)
     U = set()
-    limit = (k ** 2) * (2 ** (l * t))
+    limit = k * (2 ** (l * t))
 
     while len(U) < limit and not D.is_empty():
         Bi, Si = D.pull()

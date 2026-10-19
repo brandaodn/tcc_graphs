@@ -140,8 +140,9 @@ def is_fully_reachable(graph, source, num_vertices):
 def shortest_path(pred, source, target, drop_aux=True):
     """Reconstrói o caminho source -> target a partir do dicionário de
     predecessores. Retorna None se target não foi alcançado. Com drop_aux=True,
-    remove os vértices auxiliares ("u#1", "u#2", ...) criados por
-    bounded_out_degree, devolvendo o caminho em termos do grafo original."""
+    devolve o caminho em termos do grafo original: remove os vértices
+    auxiliares ("u#1", "u#2", ...) de bounded_out_degree e troca cada vértice
+    de ciclo de constant_degree pelo vértice original, sem repetições."""
     if target != source and target not in pred:
         return None
     path = [target]
@@ -151,5 +152,13 @@ def shortest_path(pred, source, target, drop_aux=True):
             raise ValueError("ciclo no dicionário de predecessores")
     path.reverse()
     if drop_aux:
-        path = [v for v in path if not (isinstance(v, str) and "#" in v)]
+        from graphs.degree_reduction import original_vertex
+        collapsed = []
+        for v in path:
+            if isinstance(v, str) and "#" in v:
+                continue
+            v = original_vertex(v)
+            if not collapsed or collapsed[-1] != v:
+                collapsed.append(v)
+        path = collapsed
     return path
